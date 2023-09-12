@@ -194,11 +194,11 @@ struct Reader[BUF_SIZE: Int]:
         if amt_read < len(buf):
             raise Error("Unexpected End of Stream.")
 
-    # /// Appends to the `writer` contents by reading from the stream until `delimiter` is found.
-    # /// Does not write the delimiter itself.
-    # /// If `optional_max_size` is not null and amount of written bytes exceeds `optional_max_size`,
-    # /// returns `error.StreamTooLong` and finishes appending.
-    # /// If `optional_max_size` is null, appending is unbounded.
+    # Appends to the `writer` contents by reading from the stream until `delimiter` is found.
+    # Does not write the delimiter itself.
+    # If `optional_max_size` is not null and amount of written bytes exceeds `optional_max_size`,
+    # returns `error.StreamTooLong` and finishes appending.
+    # If `optional_max_size` is null, appending is unbounded.
     fn stream_until_delimiter[
         BuffD: Dim
     ](
@@ -214,11 +214,11 @@ struct Reader[BUF_SIZE: Int]:
             writer.write_byte(byte)
         raise Error("Stream too long")
 
-    # /// Appends to the `writer` contents by reading from the stream until `delimiter` is found.
-    # /// Does not write the delimiter itself.
-    # /// If `optional_max_size` is not null and amount of written bytes exceeds `optional_max_size`,
-    # /// returns `error.StreamTooLong` and finishes appending.
-    # /// If `optional_max_size` is null, appending is unbounded.
+    # Appends to the `writer` contents by reading from the stream until `delimiter` is found.
+    # Does not write the delimiter itself.
+    # If `optional_max_size` is not null and amount of written bytes exceeds `optional_max_size`,
+    # returns `error.StreamTooLong` and finishes appending.
+    # If `optional_max_size` is null, appending is unbounded.
     fn stream_until_delimiter[
         BuffD: Dim
     ](inout self, inout writer: FixedBufferStream[BuffD], delimiter: UInt8) raises:
