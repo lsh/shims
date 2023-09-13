@@ -11,6 +11,7 @@ from sys.info import sizeof
 from math import rotate_bits_left
 from utils.static_tuple import StaticTuple
 from math import min
+from algorithm.functional import parallelize
 import testing
 
 from shims.bitcast import from_be_bytes, from_le_bytes, to_le_bytes
@@ -142,76 +143,6 @@ struct SipHashStateless[T: DType, C_ROUNDS: Int, D_ROUNDS: Int]:
         return c.final(slice_buf(msg, slice(aligned_len, len(msg))))
 
 
-# TOOD: remove once fix for aliasing static tuples is released
-fn make_test_data() -> StaticTuple[63, SIMD[DType.uint8, 8]]:
-    return StaticTuple[63, SIMD[DType.uint8, 8]](
-        SIMD[DType.uint8, 8](49, 14, 14, 221, 71, 219, 111, 114),
-        SIMD[DType.uint8, 8](253, 103, 220, 147, 197, 57, 248, 116),
-        SIMD[DType.uint8, 8](90, 79, 169, 217, 9, 128, 108, 13),
-        SIMD[DType.uint8, 8](45, 126, 251, 215, 150, 102, 103, 133),
-        SIMD[DType.uint8, 8](183, 135, 113, 39, 224, 148, 39, 207),
-        SIMD[DType.uint8, 8](141, 166, 153, 205, 100, 85, 118, 24),
-        SIMD[DType.uint8, 8](206, 227, 254, 88, 110, 70, 201, 203),
-        SIMD[DType.uint8, 8](55, 209, 1, 139, 245, 0, 2, 171),
-        SIMD[DType.uint8, 8](98, 36, 147, 154, 121, 245, 245, 147),
-        SIMD[DType.uint8, 8](176, 228, 169, 11, 223, 130, 0, 158),
-        SIMD[DType.uint8, 8](243, 185, 221, 148, 197, 187, 93, 122),
-        SIMD[DType.uint8, 8](167, 173, 107, 34, 70, 47, 179, 244),
-        SIMD[DType.uint8, 8](251, 229, 14, 134, 188, 143, 30, 117),
-        SIMD[DType.uint8, 8](144, 61, 132, 192, 39, 86, 234, 20),
-        SIMD[DType.uint8, 8](238, 242, 122, 142, 144, 202, 35, 247),
-        SIMD[DType.uint8, 8](229, 69, 190, 73, 97, 202, 41, 161),
-        SIMD[DType.uint8, 8](219, 155, 194, 87, 127, 204, 42, 63),
-        SIMD[DType.uint8, 8](148, 71, 190, 44, 245, 233, 154, 105),
-        SIMD[DType.uint8, 8](156, 211, 141, 150, 240, 179, 193, 75),
-        SIMD[DType.uint8, 8](189, 97, 121, 167, 29, 201, 109, 187),
-        SIMD[DType.uint8, 8](152, 238, 162, 26, 242, 92, 214, 190),
-        SIMD[DType.uint8, 8](199, 103, 59, 46, 176, 203, 242, 208),
-        SIMD[DType.uint8, 8](136, 62, 163, 227, 149, 103, 83, 147),
-        SIMD[DType.uint8, 8](200, 206, 92, 205, 140, 3, 12, 168),
-        SIMD[DType.uint8, 8](148, 175, 73, 246, 198, 80, 173, 184),
-        SIMD[DType.uint8, 8](234, 184, 133, 138, 222, 146, 225, 188),
-        SIMD[DType.uint8, 8](243, 21, 187, 91, 184, 53, 216, 23),
-        SIMD[DType.uint8, 8](173, 207, 107, 7, 99, 97, 46, 47),
-        SIMD[DType.uint8, 8](165, 201, 29, 167, 172, 170, 77, 222),
-        SIMD[DType.uint8, 8](113, 101, 149, 135, 102, 80, 162, 166),
-        SIMD[DType.uint8, 8](40, 239, 73, 92, 83, 163, 135, 173),
-        SIMD[DType.uint8, 8](66, 195, 65, 216, 250, 146, 216, 50),
-        SIMD[DType.uint8, 8](206, 124, 242, 114, 47, 81, 39, 113),
-        SIMD[DType.uint8, 8](227, 120, 89, 249, 70, 35, 243, 167),
-        SIMD[DType.uint8, 8](56, 18, 5, 187, 26, 176, 224, 18),
-        SIMD[DType.uint8, 8](174, 151, 161, 15, 212, 52, 224, 21),
-        SIMD[DType.uint8, 8](180, 163, 21, 8, 190, 255, 77, 49),
-        SIMD[DType.uint8, 8](129, 57, 98, 41, 240, 144, 121, 2),
-        SIMD[DType.uint8, 8](77, 12, 244, 158, 229, 212, 220, 202),
-        SIMD[DType.uint8, 8](92, 115, 51, 106, 118, 216, 191, 154),
-        SIMD[DType.uint8, 8](208, 167, 4, 83, 107, 169, 62, 14),
-        SIMD[DType.uint8, 8](146, 89, 88, 252, 214, 66, 12, 173),
-        SIMD[DType.uint8, 8](169, 21, 194, 155, 200, 6, 115, 24),
-        SIMD[DType.uint8, 8](149, 43, 121, 243, 188, 10, 166, 212),
-        SIMD[DType.uint8, 8](242, 29, 242, 228, 29, 69, 53, 249),
-        SIMD[DType.uint8, 8](135, 87, 117, 25, 4, 143, 83, 169),
-        SIMD[DType.uint8, 8](16, 165, 108, 245, 223, 205, 154, 219),
-        SIMD[DType.uint8, 8](235, 117, 9, 92, 205, 152, 108, 208),
-        SIMD[DType.uint8, 8](81, 169, 203, 158, 203, 163, 18, 230),
-        SIMD[DType.uint8, 8](150, 175, 173, 252, 44, 230, 102, 199),
-        SIMD[DType.uint8, 8](114, 254, 82, 151, 90, 67, 100, 238),
-        SIMD[DType.uint8, 8](90, 22, 69, 178, 118, 213, 146, 161),
-        SIMD[DType.uint8, 8](178, 116, 203, 142, 191, 135, 135, 10),
-        SIMD[DType.uint8, 8](111, 155, 180, 32, 61, 231, 179, 129),
-        SIMD[DType.uint8, 8](234, 236, 178, 163, 11, 34, 168, 127),
-        SIMD[DType.uint8, 8](153, 36, 164, 60, 193, 49, 87, 36),
-        SIMD[DType.uint8, 8](189, 131, 141, 58, 175, 191, 141, 183),
-        SIMD[DType.uint8, 8](11, 26, 42, 50, 101, 213, 26, 234),
-        SIMD[DType.uint8, 8](19, 80, 121, 163, 35, 28, 230, 96),
-        SIMD[DType.uint8, 8](147, 43, 40, 70, 228, 215, 6, 102),
-        SIMD[DType.uint8, 8](225, 145, 95, 92, 177, 236, 164, 108),
-        SIMD[DType.uint8, 8](243, 37, 150, 92, 161, 109, 98, 159),
-        SIMD[DType.uint8, 8](87, 95, 242, 142, 96, 56, 27, 229),
-        SIMD[DType.uint8, 8](114, 69, 6, 235, 76, 50, 138, 149),
-    )
-
-
 @value
 struct SipHash[T: DType, C_ROUNDS: Int, D_ROUNDS: Int]:
     alias key_length = 16
@@ -313,14 +244,92 @@ alias UInt8x8 = SIMD[DType.uint8, 8]
 
 alias SipHash24 = SipHash[DType.uint64, 2, 4]
 
+# TOOD: remove once fix for aliasing static tuples is released
+alias TEST_DATA_LEN = 63
+
+
+fn make_test_data() -> StaticTuple[TEST_DATA_LEN, SIMD[DType.uint8, 8]]:
+    return StaticTuple[63, SIMD[DType.uint8, 8]](
+        SIMD[DType.uint8, 8](49, 14, 14, 221, 71, 219, 111, 114),
+        SIMD[DType.uint8, 8](253, 103, 220, 147, 197, 57, 248, 116),
+        SIMD[DType.uint8, 8](90, 79, 169, 217, 9, 128, 108, 13),
+        SIMD[DType.uint8, 8](45, 126, 251, 215, 150, 102, 103, 133),
+        SIMD[DType.uint8, 8](183, 135, 113, 39, 224, 148, 39, 207),
+        SIMD[DType.uint8, 8](141, 166, 153, 205, 100, 85, 118, 24),
+        SIMD[DType.uint8, 8](206, 227, 254, 88, 110, 70, 201, 203),
+        SIMD[DType.uint8, 8](55, 209, 1, 139, 245, 0, 2, 171),
+        SIMD[DType.uint8, 8](98, 36, 147, 154, 121, 245, 245, 147),
+        SIMD[DType.uint8, 8](176, 228, 169, 11, 223, 130, 0, 158),
+        SIMD[DType.uint8, 8](243, 185, 221, 148, 197, 187, 93, 122),
+        SIMD[DType.uint8, 8](167, 173, 107, 34, 70, 47, 179, 244),
+        SIMD[DType.uint8, 8](251, 229, 14, 134, 188, 143, 30, 117),
+        SIMD[DType.uint8, 8](144, 61, 132, 192, 39, 86, 234, 20),
+        SIMD[DType.uint8, 8](238, 242, 122, 142, 144, 202, 35, 247),
+        SIMD[DType.uint8, 8](229, 69, 190, 73, 97, 202, 41, 161),
+        SIMD[DType.uint8, 8](219, 155, 194, 87, 127, 204, 42, 63),
+        SIMD[DType.uint8, 8](148, 71, 190, 44, 245, 233, 154, 105),
+        SIMD[DType.uint8, 8](156, 211, 141, 150, 240, 179, 193, 75),
+        SIMD[DType.uint8, 8](189, 97, 121, 167, 29, 201, 109, 187),
+        SIMD[DType.uint8, 8](152, 238, 162, 26, 242, 92, 214, 190),
+        SIMD[DType.uint8, 8](199, 103, 59, 46, 176, 203, 242, 208),
+        SIMD[DType.uint8, 8](136, 62, 163, 227, 149, 103, 83, 147),
+        SIMD[DType.uint8, 8](200, 206, 92, 205, 140, 3, 12, 168),
+        SIMD[DType.uint8, 8](148, 175, 73, 246, 198, 80, 173, 184),
+        SIMD[DType.uint8, 8](234, 184, 133, 138, 222, 146, 225, 188),
+        SIMD[DType.uint8, 8](243, 21, 187, 91, 184, 53, 216, 23),
+        SIMD[DType.uint8, 8](173, 207, 107, 7, 99, 97, 46, 47),
+        SIMD[DType.uint8, 8](165, 201, 29, 167, 172, 170, 77, 222),
+        SIMD[DType.uint8, 8](113, 101, 149, 135, 102, 80, 162, 166),
+        SIMD[DType.uint8, 8](40, 239, 73, 92, 83, 163, 135, 173),
+        SIMD[DType.uint8, 8](66, 195, 65, 216, 250, 146, 216, 50),
+        SIMD[DType.uint8, 8](206, 124, 242, 114, 47, 81, 39, 113),
+        SIMD[DType.uint8, 8](227, 120, 89, 249, 70, 35, 243, 167),
+        SIMD[DType.uint8, 8](56, 18, 5, 187, 26, 176, 224, 18),
+        SIMD[DType.uint8, 8](174, 151, 161, 15, 212, 52, 224, 21),
+        SIMD[DType.uint8, 8](180, 163, 21, 8, 190, 255, 77, 49),
+        SIMD[DType.uint8, 8](129, 57, 98, 41, 240, 144, 121, 2),
+        SIMD[DType.uint8, 8](77, 12, 244, 158, 229, 212, 220, 202),
+        SIMD[DType.uint8, 8](92, 115, 51, 106, 118, 216, 191, 154),
+        SIMD[DType.uint8, 8](208, 167, 4, 83, 107, 169, 62, 14),
+        SIMD[DType.uint8, 8](146, 89, 88, 252, 214, 66, 12, 173),
+        SIMD[DType.uint8, 8](169, 21, 194, 155, 200, 6, 115, 24),
+        SIMD[DType.uint8, 8](149, 43, 121, 243, 188, 10, 166, 212),
+        SIMD[DType.uint8, 8](242, 29, 242, 228, 29, 69, 53, 249),
+        SIMD[DType.uint8, 8](135, 87, 117, 25, 4, 143, 83, 169),
+        SIMD[DType.uint8, 8](16, 165, 108, 245, 223, 205, 154, 219),
+        SIMD[DType.uint8, 8](235, 117, 9, 92, 205, 152, 108, 208),
+        SIMD[DType.uint8, 8](81, 169, 203, 158, 203, 163, 18, 230),
+        SIMD[DType.uint8, 8](150, 175, 173, 252, 44, 230, 102, 199),
+        SIMD[DType.uint8, 8](114, 254, 82, 151, 90, 67, 100, 238),
+        SIMD[DType.uint8, 8](90, 22, 69, 178, 118, 213, 146, 161),
+        SIMD[DType.uint8, 8](178, 116, 203, 142, 191, 135, 135, 10),
+        SIMD[DType.uint8, 8](111, 155, 180, 32, 61, 231, 179, 129),
+        SIMD[DType.uint8, 8](234, 236, 178, 163, 11, 34, 168, 127),
+        SIMD[DType.uint8, 8](153, 36, 164, 60, 193, 49, 87, 36),
+        SIMD[DType.uint8, 8](189, 131, 141, 58, 175, 191, 141, 183),
+        SIMD[DType.uint8, 8](11, 26, 42, 50, 101, 213, 26, 234),
+        SIMD[DType.uint8, 8](19, 80, 121, 163, 35, 28, 230, 96),
+        SIMD[DType.uint8, 8](147, 43, 40, 70, 228, 215, 6, 102),
+        SIMD[DType.uint8, 8](225, 145, 95, 92, 177, 236, 164, 108),
+        SIMD[DType.uint8, 8](243, 37, 150, 92, 161, 109, 98, 159),
+        SIMD[DType.uint8, 8](87, 95, 242, 142, 96, 56, 27, 229),
+        SIMD[DType.uint8, 8](114, 69, 6, 235, 76, 50, 138, 149),
+    )
+
 
 fn test_siphash64_2_4(test_key: Buffer[16, DType.uint8]) raises:
     let msg = Buffer[64, DType.uint8]().stack_allocation()
     let test_data = make_test_data()
-    for i in range(test_data.__len__()):
+    for i in range(TEST_DATA_LEN):
         msg[i] = i
+
+    @parameter
+    fn test_inner(i: Int):
         let out = Buffer[SipHash24.mac_length, DType.uint8]().stack_allocation()
-        SipHash24.create(out, slice_buf(msg, slice(0, i)), test_key)
+        try:
+            SipHash24.create(out, slice_buf(msg, slice(0, i)), test_key)
+        except:
+            print("failed on test: ", i)
         let out_str = String(
             StringRef(out.data.bitcast[DType.int8]().address, SipHash24.mac_length)
         )
@@ -334,7 +343,9 @@ fn test_siphash64_2_4(test_key: Buffer[16, DType.uint8]) raises:
             )
         )
         if not testing.assert_equal(vector_str, out_str):
-            raise Error("failed")
+            pass
+
+    parallelize[test_inner](TEST_DATA_LEN)
 
 
 fn test_iterative_non_divisible_update() raises:
