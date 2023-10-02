@@ -5,7 +5,8 @@ See: https://github.com/ziglang/zig/blob/master/lib/std/io/buffered_reader.zig
 Example usage:
 ==============
 
-from shims.read import BufReader, File
+from shims.file import File
+from shims.read import BufReader
 from memory.buffer import Buffer
 
 
@@ -37,69 +38,10 @@ from utils.index import Index
 from utils.vector import DynamicVector
 import testing
 
-alias FILE = UInt64
-from shims.libc.stdio import fopen, fread, fclose
-from shims.libc.string import strnlen
-
-alias BUF_SIZE = 4096
+from shims.file import File
 
 # Types aliases
 alias c_char = UInt8
-
-
-fn to_char_ptr(s: String) -> Pointer[c_char]:
-    """Only ASCII-based strings."""
-    let ptr = Pointer[c_char]().alloc(len(s) + 1)
-    for i in range(len(s)):
-        ptr.store(i, ord(s[i]))
-    ptr.store(len(s), ord("\0"))
-    return ptr
-
-
-struct File:
-    var handle: Pointer[UInt64]
-    var fname: Pointer[c_char]
-    var mode: Pointer[c_char]
-
-    fn __init__(inout self, filename: String):
-        let fname = to_char_ptr(filename)
-        let mode = to_char_ptr("r")
-        let handle = fopen(fname, mode)
-
-        self.fname = fname
-        self.mode = mode
-        self.handle = handle
-
-    fn __bool__(self) -> Bool:
-        return self.handle.__bool__()
-
-    fn __del__(owned self) raises:
-        if self.handle:
-            pass
-            # TODO: uncomment when external_call resolution bug is fixed
-            # let c = fclose(self.handle)
-            # if c != 0:
-            #     raise Error("Failed to close file")
-        if self.fname:
-            self.fname.free()
-        if self.mode:
-            self.mode.free()
-
-    fn __moveinit__(inout self, owned other: Self):
-        self.fname = other.fname
-        self.mode = other.mode
-        self.handle = other.handle
-        other.handle = Pointer[FILE]()
-        other.fname = Pointer[c_char]()
-        other.mode = Pointer[c_char]()
-
-    fn do_nothing(self):
-        pass
-
-    fn read[D: Dim](self, buffer: Buffer[D, DType.uint8]) raises -> Int:
-        return fread(
-            buffer.data.as_scalar_pointer(), sizeof[UInt8](), BUF_SIZE, self.handle
-        ).to_int()
 
 
 struct BufReader[BUF_SIZE: Int]:
@@ -119,7 +61,7 @@ struct BufReader[BUF_SIZE: Int]:
         self.data = other.data
         self.end = other.end
         self.start = other.start
-        other.unbuffered_reader = File("")
+        other.unbuffered_reader = File("", "r")
         other.data = DTypePointer[DType.uint8]()
 
     fn read[D: Dim](inout self, dest: Buffer[D, DType.uint8]) raises -> Int:

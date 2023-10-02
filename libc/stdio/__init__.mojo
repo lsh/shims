@@ -8,7 +8,7 @@ fn clearerr(arg: Pointer[FILE]) -> UInt8:
 
 
 fn fclose(arg: Pointer[FILE]) -> Int32:
-    return external_call["fclose", Int32](arg)
+    return external_call["fclose", Int32, Pointer[FILE]](arg)
 
 
 fn feof(arg: Pointer[FILE]) -> Int32:
@@ -31,6 +31,14 @@ fn fopen(__filename: Pointer[UInt8], __mode: Pointer[UInt8]) -> Pointer[FILE]:
     return external_call["fopen", Pointer[FILE], Pointer[UInt8], Pointer[UInt8]](
         __filename, __mode
     )
+
+
+fn fwrite(
+    __ptr: Pointer[UInt8], __size: UInt64, __nitems: UInt64, __stream: Pointer[FILE]
+) -> UInt64:
+    return external_call[
+        "fwrite", UInt64, Pointer[UInt8], UInt64, UInt64, Pointer[FILE]
+    ](__ptr, __size, __nitems, __stream)
 
 
 fn fread(
